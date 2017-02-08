@@ -3,23 +3,25 @@
 Full retriever for art and metadata in http://wikiart.org/.
 Please read the LICENSE file in the base directory.
 
-## Installation and Usage
+## Usage
 
-First, clone the repository:
+The command bellow will fetch and convert all data available at WikiArt
+into a "dataset-y" representation:
 ```shell
-git clone https://github.com/lucasdavid/wikiart
-cd wikiart
+$ python3 __main__.py # saves data in ./wikiartds
+$ # Or...
+$ python3 __main__.py --datadir ./output
 ```
 
-You can either run it directly:
-```shell
-$ python __main__.py --datadir /datasets/wikiart
-```
-Or install it first and then use it:
-```shell
-$ pip install setup.py
-$ wikiart # equivalent to wikiart fetch && wikiart convert
-```
+If you had to stop the downloading process, for some reason,
+you can resume it by simply `python3 __main__.py --datadir ./output`.
+ The program wil scan `--datadir` and only download what's not there yet.
+ 
+Additionally, you can **only** download or convert the data with
+`python3 __main__.py fetch` and `python3 __main__.py convert`, respectively.
 
 For more information on the options available, run
-`python __main__.py --help` or `wikiart --help`.
+`python __main__.py --help`.
+
+If you install this project with `python3 setup.py install`,
+you will be able to use `wikiart` as an alias for `python __main__.py`.

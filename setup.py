@@ -20,7 +20,7 @@ setup(
         ]
     },
     long_description=open('README.md').read(),
-    version='1.0',
+    version='1.0.1',
     packages=['wikiart'],
     scripts=[],
     author='Lucas David',
