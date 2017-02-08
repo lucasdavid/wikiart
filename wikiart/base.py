@@ -7,7 +7,7 @@ License: MIT License (c) 2016
 import abc
 import time
 
-from wikiart import settings
+from . import settings
 
 
 class RequestPadder:

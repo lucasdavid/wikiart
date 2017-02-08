@@ -23,8 +23,7 @@ class WikiArtFetcher:
     Fetcher for data in WikiArt.org.
     """
 
-    def __init__(self, commit=True, override=False,
-                 padder=None):
+    def __init__(self, commit=True, override=False, padder=None):
         self.commit = commit
         self.override = override
 
@@ -35,27 +34,16 @@ class WikiArtFetcher:
 
     def prepare(self):
         """Prepare for data extraction."""
-        instance = os.path.join(settings.BASE_FOLDER,
-                                settings.INSTANCE_IDENTIFIER)
-        if not os.path.exists(instance):
-            os.mkdir(instance)
-
-        meta = os.path.join(instance, 'meta')
-        if not os.path.exists(meta):
-            os.mkdir(meta)
-
-        images = os.path.join(instance, 'images')
-        if not os.path.exists(images):
-            os.mkdir(images)
-
+        os.makedirs(settings.BASE_FOLDER, exist_ok=True)
+        os.makedirs(os.path.join(settings.BASE_FOLDER, 'meta'), exist_ok=True)
+        os.makedirs(os.path.join(settings.BASE_FOLDER, 'images'), exist_ok=True)
         return self
 
     def check(self, only='all'):
         """Check if fetched data is intact."""
         Logger.info('Checking downloaded data...')
 
-        base_dir = os.path.join(settings.BASE_FOLDER,
-                                settings.INSTANCE_IDENTIFIER)
+        base_dir = settings.BASE_FOLDER
         meta_dir = os.path.join(base_dir, 'meta')
         imgs_dir = os.path.join(base_dir, 'images')
 
@@ -66,8 +54,8 @@ class WikiArtFetcher:
 
         if only in ('paintings', 'all'):
             for artist in self.artists:
-                file = os.path.join(meta_dir, artist['url'] + '.json')
-                if os.path.exists(file):
+                filename = os.path.join(meta_dir, artist['url'] + '.json')
+                if os.path.exists(filename):
                     Logger.write('.', end='')
                 else:
                     Logger.error('%s\'s paintings file is missing.'
@@ -76,10 +64,10 @@ class WikiArtFetcher:
             # Check for paintings copies.
             for group in self.painting_groups:
                 for painting in group:
-                    file = os.path.join(imgs_dir,
+                    filename = os.path.join(imgs_dir,
                                         str(painting['contentId']) +
                                         settings.SAVE_IMAGES_IN_FORMAT)
-                    if not os.path.exists(file):
+                    if not os.path.exists(filename):
                         Logger.error('painting %i is missing.'
                                      % painting['contentId'])
 
@@ -93,8 +81,7 @@ class WikiArtFetcher:
         """Retrieve Artists from WikiArt."""
         Logger.info('Fetching artists...', end=' ', flush=True)
 
-        path = os.path.join(settings.BASE_FOLDER, settings.INSTANCE_IDENTIFIER,
-                            'meta', 'artists.json')
+        path = os.path.join(settings.BASE_FOLDER, 'meta', 'artists.json')
         if os.path.exists(path) and not self.override:
             with open(path, encoding='utf-8') as f:
                 self.artists = json.load(f)
@@ -150,14 +137,13 @@ class WikiArtFetcher:
                      % artist['artistName'], end='', flush=True)
         elapsed = time.time()
 
-        meta_folder = os.path.join(settings.BASE_FOLDER,
-                                   settings.INSTANCE_IDENTIFIER, 'meta')
+        meta_folder = os.path.join(settings.BASE_FOLDER, 'meta')
         url = '/'.join((settings.BASE_URL, 'Painting', 'PaintingsByArtist'))
         params = {'artistUrl': artist['url'], 'json': 2}
-        file = os.path.join(meta_folder, artist['url'] + '.json')
+        filename = os.path.join(meta_folder, artist['url'] + '.json')
 
-        if os.path.exists(file) and not self.override:
-            with open(file, 'r', encoding='utf-8') as f:
+        if os.path.exists(filename) and not self.override:
+            with open(filename, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             Logger.write(' Skipped')
             return data
@@ -188,7 +174,7 @@ class WikiArtFetcher:
 
             if self.commit:
                 # Save the json file with images details.
-                with open(file, 'w', encoding='utf-8') as f:
+                with open(filename, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=4, ensure_ascii=False)
 
             Logger.write(' Done (%.2f sec)' % (time.time() - elapsed))
@@ -225,11 +211,12 @@ class WikiArtFetcher:
         url = painting['image']
         # Remove label "!Large.jpg".
         url = ''.join(url.split('!')[:-1])
-        file = os.path.join(settings.BASE_FOLDER, settings.INSTANCE_IDENTIFIER,
-                            'images', str(painting['contentId']) +
-                            settings.SAVE_IMAGES_IN_FORMAT)
+        filename = os.path.join(settings.BASE_FOLDER,
+                                'images',
+                                str(painting['contentId']) +
+                                settings.SAVE_IMAGES_IN_FORMAT)
 
-        if os.path.exists(file) and not self.override:
+        if os.path.exists(filename) and not self.override:
             Logger.write('Skipped')
             return self
 
@@ -242,7 +229,7 @@ class WikiArtFetcher:
 
             response.raise_for_status()
 
-            with open(file, 'wb') as f:
+            with open(filename, 'wb') as f:
                 response.raw.decode_content = True
                 shutil.copyfileobj(response.raw, f)
 
@@ -250,6 +237,6 @@ class WikiArtFetcher:
 
         except Exception as error:
             Logger.write('%s' % str(error))
-            if os.path.exists(file): os.remove(file)
+            if os.path.exists(filename): os.remove(filename)
 
         return self

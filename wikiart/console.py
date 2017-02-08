@@ -8,9 +8,7 @@ License: MIT License (c) 2016
 import argparse
 import time
 
-from . import settings, base
-from .converter import WikiArtMetadataConverter
-from .fetcher import WikiArtFetcher
+from . import base, converter, fetcher, settings
 
 
 class Console:
@@ -20,27 +18,25 @@ class Console:
 
         p.add_argument('--override',
                        default=False, action='store_true',
-                       help='Override existing files.')
+                       help='override existing files')
         p.add_argument('--verbose',
                        default=True, action='store_true',
-                       help='Verbose process.')
-        p.add_argument('--instance',
-                       default='1',
-                       help='Fetching or conversion instance'
-                            '(if multiple are desired).')
+                       help='verbose process')
+        p.add_argument('--datadir', default=None,
+                       help='output directory for dataset')
 
         # Fetch operation.
         sp = p.add_subparsers(
             title='operations',
             description='specify which operation to perform.')
-        p_fetch = sp.add_parser('fetch', help='Fetch paintings from WikiArt.')
+        p_fetch = sp.add_parser('fetch', help='fetch paintings from WikiArt')
         p_fetch.add_argument('--check', type=bool, default=True,
-                             help='Check downloaded files.')
+                             help='check downloaded files')
         p_fetch.add_argument('--only', type=str, default='all',
                              choices=('artists', 'paintings', 'all'),
-                             help='Fetch only artists list, paintings '
+                             help='fetch only artists list, paintings '
                                   'metadata or artists, paintings annotations '
-                                  'and copies.')
+                                  'and copies')
 
         p_fetch.set_defaults(func=self.fetch)
 
@@ -59,7 +55,8 @@ class Console:
 
         try:
             args = self.parser.parse_args()
-            settings.INSTANCE_IDENTIFIER = args.instance
+            if args.datadir is not None:
+                settings.BASE_FOLDER = args.datadir
 
             # Initiate logging, if requested.
             base.Logger.active = args.verbose
@@ -70,32 +67,32 @@ class Console:
 
             args.func(args)
         except KeyboardInterrupt:
-            print('\nCanceled.')
+            print('\ncanceled')
         else:
-            print('\nDone (%.2f sec).' % (time.time() - elapsed))
+            print('\ndone (%.2f sec)' % (time.time() - elapsed))
 
     def main(self, args):
         return self.fetch(args).convert(args)
 
     def fetch(self, args):
-        fetcher = WikiArtFetcher(override=args.override)
-        fetcher.prepare()
+        f = fetcher.WikiArtFetcher(override=args.override)
+        f.prepare()
 
         if not hasattr(args, 'only') or args.only == 'all':
             args.only = 'all'
-            fetcher.fetch_all()
+            f.fetch_all()
         else:
-            fetcher.fetch_artists()
+            f.fetch_artists()
 
             if args.only == 'paintings':
-                fetcher.fetch_all_paintings()
+                f.fetch_all_paintings()
 
-        if args.check: fetcher.check(only=args.only)
+        if args.check: f.check(only=args.only)
 
         return self
 
     def convert(self, args):
-        (WikiArtMetadataConverter(override=args.override)
+        (converter.WikiArtMetadataConverter(override=args.override)
          .prepare()
          .generate_images_data_set()
          .generate_labels())

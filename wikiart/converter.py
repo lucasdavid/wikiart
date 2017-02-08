@@ -25,10 +25,8 @@ class WikiArtMetadataConverter:
         self.painting_groups = None
 
     def prepare(self):
-        base_folder = os.path.join(settings.BASE_FOLDER,
-                                   settings.INSTANCE_IDENTIFIER)
-        if not os.path.exists(base_folder):
-            os.mkdir(base_folder)
+        base_folder = settings.BASE_FOLDER
+        os.makedirs(base_folder, exist_ok=True)
 
         Logger.info('Loading artists...', end=' ', flush=True)
         with open(os.path.join(base_folder, 'meta', 'artists.json'),
@@ -55,9 +53,7 @@ class WikiArtMetadataConverter:
     def generate_images_data_set(self):
         Logger.info('Generating images data set...', end=' ', flush=True)
 
-        path = os.path.join(settings.BASE_FOLDER,
-                            settings.INSTANCE_IDENTIFIER,
-                            'wikiart.data')
+        path = os.path.join(settings.BASE_FOLDER, 'wikiart.data')
         if os.path.exists(path) and not self.override:
             Logger.write('Skipped')
             return self
@@ -74,9 +70,7 @@ class WikiArtMetadataConverter:
     def generate_labels(self):
         Logger.info('Generating labels...', end=' ', flush=True)
 
-        path = os.path.join(settings.BASE_FOLDER,
-                            settings.INSTANCE_IDENTIFIER,
-                            'labels.data')
+        path = os.path.join(settings.BASE_FOLDER, 'labels.data')
         if os.path.exists(path) and not self.override:
             Logger.write('Skipped')
             return self
