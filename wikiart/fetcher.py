@@ -205,8 +205,8 @@ class WikiArtFetcher:
 
     def download_hard_copy(self, painting):
         """Download A Copy of A Painting."""
-        Logger.write('|-downloading "%s"...'
-                     % painting['url'], end=' ', flush=True)
+        Logger.write('|-downloading "%s"...' % painting.get('url', painting.get('contentId')),
+                     end=' ', flush=True)
         elapsed = time.time()
         url = painting['image']
         # Remove label "!Large.jpg".
