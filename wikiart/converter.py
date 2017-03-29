@@ -32,7 +32,7 @@ class WikiArtMetadataConverter:
         with open(os.path.join(base_folder, 'meta', 'artists.json'),
                   encoding='utf-8') as f:
             self.artists = json.load(f)
-        Logger.write('Done.')
+        Logger.write('done.')
 
         Logger.info('Loading paintings...', flush=True)
         self.painting_groups = []
@@ -45,17 +45,17 @@ class WikiArtMetadataConverter:
                     self.painting_groups.append(json.load(f))
 
             except IOError as error:
-                Logger.error('Failed: %s' % str(error))
+                Logger.warning(str(error))
 
-        Logger.info('Done.')
+        Logger.write('done.')
         return self
 
     def generate_images_data_set(self):
-        Logger.info('Generating images data set...', end=' ', flush=True)
+        Logger.info('generating images data set', end=' ', flush=True)
 
         path = os.path.join(settings.BASE_FOLDER, 'wikiart.data')
         if os.path.exists(path) and not self.override:
-            Logger.write('Skipped')
+            Logger.write('(s)')
             return self
 
         paintings = sum(self.painting_groups, [])
@@ -64,22 +64,22 @@ class WikiArtMetadataConverter:
             f.write(settings.LABELS_HEADER)
             f.writelines(self.paintings_as_lines(paintings))
 
-        Logger.write('Done')
+        Logger.write('(d)')
         return self
 
     def generate_labels(self):
-        Logger.info('Generating labels...', end=' ', flush=True)
+        Logger.write('generating labels', end=' ', flush=True)
 
         path = os.path.join(settings.BASE_FOLDER, 'labels.data')
         if os.path.exists(path) and not self.override:
-            Logger.write('Skipped')
+            Logger.write('(s)')
             return self
 
         with open(path, 'w', encoding='utf-8') as file:
             file.write(settings.LABELS_HEADER)
             file.writelines(self.artists_as_lines(self.artists))
 
-        Logger.write('Done')
+        Logger.write('(d)')
         return self
 
     @classmethod
@@ -92,6 +92,6 @@ class WikiArtMetadataConverter:
 
     @classmethod
     def convert_to_lines(cls, iterable, attributes):
-        return [','.join(str(item[attribute] or '')
+        return [','.join(str(item[attribute] if attribute in item else '')
                          for attribute in attributes) + '\n'
                 for item in iterable]

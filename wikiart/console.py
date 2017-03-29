@@ -24,14 +24,14 @@ class Console:
                        help='verbose process')
         p.add_argument('--datadir', default=None,
                        help='output directory for dataset')
+        p.add_argument('--check', type=bool, default=True,
+                       help='check downloaded files')
 
         # Fetch operation.
         sp = p.add_subparsers(
             title='operations',
             description='specify which operation to perform.')
         p_fetch = sp.add_parser('fetch', help='fetch paintings from WikiArt')
-        p_fetch.add_argument('--check', type=bool, default=True,
-                             help='check downloaded files')
         p_fetch.add_argument('--only', type=str, default='all',
                              choices=('artists', 'paintings', 'all'),
                              help='fetch only artists list, paintings '
