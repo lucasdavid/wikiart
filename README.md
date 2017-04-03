@@ -8,7 +8,7 @@ Please read the LICENSE file in the base directory.
 The command bellow will fetch and convert all data available at WikiArt
 into a "dataset-y" representation:
 ```shell
-$ python3 __main__.py # saves data in ./wikiartds
+$ python3 __main__.py # saves data in ./wikiart
 $ # Or...
 $ python3 __main__.py --datadir ./output
 ```

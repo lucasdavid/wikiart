@@ -11,7 +11,7 @@ License: MIT License (c) 2016
 BASE_URL = 'http://www.wikiart.org/en/App'
 
 # Base folder in which the files will be saved.
-BASE_FOLDER = './wikiartds'
+BASE_FOLDER = './wikiart'
 
 # Format in which the images will be saved.
 SAVE_IMAGES_IN_FORMAT = '.jpg'
@@ -35,11 +35,7 @@ PAINTINGS_REQUEST_TIMEOUT = 5 * 60
 # Set which attributes are considered when converting the paintings json files
 # to a more common data set format.
 PAINTING_ATTRIBUTES = (
-    'contentId', 'image', 'url', 'title', 'description', 'serie', 'style',
-    'period', 'genre', 'technique', 'material', 'height', 'width', 'sizeX',
-    'sizeY', 'diameter', 'auction', 'location', 'artistContentId',
-    'artistUrl', 'artistName', 'completitionYear', 'yearAsString',
-    'yearOfTrade', 'galleryName', 'lastPrice')
+    'contentId', 'url', 'style', 'genre', 'artistContentId', 'artistUrl')
 
 PAINTINGS_HEADER = """
 =======================
@@ -51,10 +47,8 @@ This data set was created from paintings extracted from WikiArt.org.
 Please refer to https://github.com/lucasdavid/wikiart for more information
 or to report a bug.
 
-Attributes are:
 %s
-
-""" % ', '.join(())
+""" % ','.join(PAINTING_ATTRIBUTES)
 
 # Set which attributes are considered when converting the artists' attributes
 # to a more common data set format.
@@ -74,7 +68,5 @@ This data set was created from paintings extracted from WikiArt.org.
 Please refer to https://github.com/lucasdavid/wikiart for more information
 or to report a bug.
 
-Attributes are:
 %s
-
-""" % ', '.join(ARTIST_ATTRIBUTES)
+""" % ','.join(ARTIST_ATTRIBUTES)
