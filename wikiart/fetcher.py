@@ -73,7 +73,9 @@ class WikiArtFetcher:
 
     def fetch_all(self):
         """Fetch Everything from WikiArt."""
-        return self.fetch_artists().fetch_all_paintings().copy_everything()
+        return (self.fetch_artists()
+                    .fetch_all_paintings()
+                    .copy_everything())
 
     def fetch_artists(self):
         """Retrieve Artists from WikiArt."""
