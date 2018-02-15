@@ -34,6 +34,6 @@ $ wikiart --datadir /datasets/wa
 
 If you want the paintings of specific painters (instead of the entire wikiart), you could:
 
-1. Run the command `python wikiart.py --datadir ./wikiart-saved/ fetch --only artists`. This will download `./wikiart-saved/meta/artists.json`, a small file containing a list of all painters in wikiart.
+1. Run the command `python3 wikiart.py --datadir ./wikiart-saved/ fetch --only artists`. This will download `./wikiart-saved/meta/artists.json`, a small file containing a list of all painters in wikiart.
 2. Open `./wikiart-saved/meta/artists.json` and remove the entries of the artists that you DO NOT wish to download.
-3. Run `python wikiart.py --datadir /datasets/wikiart/ fetch`. This will download the paintings from the artists that weren't removed from the list.
+3. Run `python3 wikiart.py --datadir /datasets/wikiart/ fetch`. This will download the paintings from the artists that weren't removed from the list.
