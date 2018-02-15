@@ -11,7 +11,7 @@ License: MIT License (c) 2016
 BASE_URL = 'http://www.wikiart.org/en/App'
 
 # Base folder in which the files will be saved.
-BASE_FOLDER = './wikiart'
+BASE_FOLDER = './wikiart-saved/'
 
 # Format in which the images will be saved.
 SAVE_IMAGES_IN_FORMAT = '.jpg'
