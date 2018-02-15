@@ -8,7 +8,7 @@ Please read the LICENSE file in the base directory.
 The command bellow will fetch and convert all data available at WikiArt
 into a "dataset-y" representation:
 ```shell
-$ python3 wikiart.py # saves in ./wikiart
+$ python3 wikiart.py # saves in ./wikiart-saved/
 $ # Or...
 $ python3 wikiart.py --datadir /datasets/wa  # saves in /datasets/wa/
 ```
@@ -29,3 +29,11 @@ you will be able to use the `wikiart` command as an alias for
 ```shell
 $ wikiart --datadir /datasets/wa
 ```
+
+### Download Paintings from Specific Artists
+
+If you want the paintings of specific painters (instead of the entire wikiart), you could:
+
+1. Run the command `python wikiart.py --datadir ./wikiart-saved/ fetch --only artists`. This will download `./wikiart-saved/meta/artists.json`, a small file containing a list of all painters in wikiart.
+2. Open `./wikiart-saved/meta/artists.json` and remove the entries of the artists that you DO NOT wish to download.
+3. Run `python wikiart.py --datadir /datasets/wikiart/ fetch`. This will download the paintings from the artists that weren't removed from the list.
