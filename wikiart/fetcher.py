@@ -116,17 +116,14 @@ class WikiArtFetcher:
             raise RuntimeError('No artists defined. Cannot continue.')
 
         self.painting_groups = []
-        show_progress_at = int(.1 * len(self.artists))
+        show_progress_at = max(1, int(.1 * len(self.artists)))
 
         # Retrieve paintings' metadata for every artist.
         for i, artist in enumerate(self.artists):
             self.painting_groups.append(self.fetch_paintings(artist))
 
             if i % show_progress_at == 0:
-                Logger.write('|--------------\n'
-                             '|-%i%% completed\n'
-                             '|--------------'
-                             % (100 * (i + 1) // len(self.artists)))
+                Logger.info('%i%% done' % (100 * (i + 1) // len(self.artists)))
         return self
 
     def fetch_paintings(self, artist):
@@ -191,16 +188,15 @@ class WikiArtFetcher:
         if not self.painting_groups:
             raise RuntimeError('Painting groups not found. Cannot continue.')
 
-        progress_interval = int(.1 * len(self.painting_groups))
+        show_progress_at = max(1, int(.1 * len(self.painting_groups)))
 
         # Retrieve copies of every artist's painting.
         for i, group in enumerate(self.painting_groups):
             for painting in group:
                 self.download_hard_copy(painting)
 
-            if i % progress_interval == 0:
-                Logger.info('%i%% completed\n|--------------'
-                            % (100 * (i + 1) // len(self.painting_groups)))
+            if i % show_progress_at == 0:
+                Logger.info('%i%% done' % (100 * (i + 1) // len(self.painting_groups)))
 
         return self
 
@@ -214,12 +210,16 @@ class WikiArtFetcher:
         url = ''.join(url.split('!')[:-1])
         filename = os.path.join(settings.BASE_FOLDER,
                                 'images',
+                                painting['artistUrl'],
+                                str(painting['completitionYear']) if painting['completitionYear'] else 'unknown-year',
                                 str(painting['contentId']) +
                                 settings.SAVE_IMAGES_IN_FORMAT)
 
         if os.path.exists(filename) and not self.override:
             Logger.write('(s)')
             return self
+
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         try:
             # Save image.
