@@ -8,7 +8,7 @@ License: MIT License (c) 2016
 # Base Settings
 
 # WikiArt base url.
-BASE_URL = 'http://www.wikiart.org/en/App'
+BASE_URL = 'https://www.wikiart.org/en/App'
 
 # Base folder in which the files will be saved.
 BASE_FOLDER = './wikiart-saved/'
