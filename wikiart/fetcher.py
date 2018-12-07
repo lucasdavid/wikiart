@@ -93,8 +93,10 @@ class WikiArtFetcher:
 
         try:
             url = '/'.join((settings.BASE_URL, 'Artist/AlphabetJson'))
+            params = {'v' : 'new', 'inPublicDomain' : 'true'}
             response = requests.get(url,
-                                    timeout=settings.METADATA_REQUEST_TIMEOUT)
+                                    timeout=settings.METADATA_REQUEST_TIMEOUT,
+                                    params=params)
             response.raise_for_status()
             self.artists = response.json()
 
