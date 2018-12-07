@@ -71,6 +71,24 @@ class WikiArtFetcher:
 
         return self
 
+    def getauthentication(self):
+        """fetch a session key from WikiArt"""
+        params = {}
+        params['accessCode'] = input('Please enter the Access code from https://www.wikiart.org/en/App/GetApi :')
+        params['secretCode'] = input("Enter the Secret code :")
+        url = 'https://www.wikiart.org/en/Api/2/login'
+
+        try:
+            response = requests.get(url,
+                                   params=params,
+                                   timeout=settings.METADATA_REQUEST_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+            return data['SessionKey']
+
+        except Exception as error:
+            Logger.write('Error %s' % str(error))
+
     def fetch_all(self):
         """Fetch Everything from WikiArt."""
         return (self.fetch_artists()
