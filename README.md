@@ -37,3 +37,12 @@ If you want the paintings of specific painters (instead of the entire wikiart), 
 1. Run the command `python3 wikiart.py --datadir ./wikiart-saved/ fetch --only artists`. This will download `./wikiart-saved/meta/artists.json`, a small file containing a list of all painters in wikiart.
 2. Open `./wikiart-saved/meta/artists.json` and remove the entries of the artists that you DO NOT wish to download.
 3. Run `python3 wikiart.py --datadir ./wikiart-saved/ fetch`. This will download the paintings from the artists that weren't removed from the list.
+
+### Sample Painting Urls from A Specific Artist
+
+If you want to sample or get all the painting urls from a specific artist:
+
+1. Follow step 1 and 2 in the previous instruction section
+2. Run `python3 wikiart.py --datadir ./wikiart-saved/ fetch --only paintings` This will download a number of 
+json files as meta data for each artist you choose to fetch.
+3. Run `python3 get_image_locations.py --datadir ./wikiart-saved/ --sample_size 200 claude-monet`. This will output a `./wikiart-saved/claude-monet.csv` file which contains the urls of 200 sampled paintings of Claude Monet.
