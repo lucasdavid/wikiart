@@ -1,19 +1,20 @@
 """WikiArt Retriever.
 
-Author: Lucas David -- <ld492@drexel.edu>
 License: MIT License (c) 2016
 
 """
 import json
 import os
+import re
 import shutil
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import unquote
 
 import requests
 
-from . import settings, base
+from . import base, settings
 from .base import Logger
 
 
@@ -27,7 +28,7 @@ class WikiArtFetcher:
         self.commit = commit
         self.override = override
 
-        self.padder = padder or base.RequestPadder()
+        self.request_padding = padder or base.RequestPadder()
 
         self.artists = None
         self.painting_groups = None
@@ -62,42 +63,72 @@ class WikiArtFetcher:
             # Check for paintings copies.
             for group in self.painting_groups:
                 for painting in group:
-                    filename = os.path.join(imgs_dir,
-                                            str(painting['contentId']) +
-                                            settings.SAVE_IMAGES_IN_FORMAT)
+                    filename = painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
+                    filename = os.path.join(imgs_dir, filename)
+
                     if not os.path.exists(filename):
-                        Logger.warning('painting %i is missing.'
-                                       % painting['contentId'])
+                        Logger.warning('painting %s is missing.' % painting['id'])
 
         return self
-
+    
     def getauthentication(self):
         """fetch a session key from WikiArt"""
+
+        """
+        API Authentication
+        To add authentication, you need to
+        1. Obtain your api key/secret https://www.wikiart.org/en/App/GetApi
+        2. Create session when your application starts:
+        https://www.wikiart.org/en/Api/2/login?accessCode=[accessCode]&secretCode=[secretcode]
+        3. Add session key to your request url, e.g. &authSessionKey=sessionKey
+        """
+
         params = {}
-        params['accessCode'] = input('Please enter the Access code from https://www.wikiart.org/en/App/GetApi :')
-        params['secretCode'] = input("Enter the Secret code :")
-        url = 'https://www.wikiart.org/en/Api/2/login'
+        params['accessCode'] = input('Please enter the Access code from https://www.wikiart.org/en/App/GetApi: ')
+        params['secretCode'] = input("Enter the Secret code: ")
+
+        # url = 'https://www.wikiart.org/en/Api/2/login'
+        url = '/'.join((settings.BASE_URL, 'login'))
 
         try:
-            response = requests.get(url,
-                                   params=params,
-                                   timeout=settings.METADATA_REQUEST_TIMEOUT)
+            response = requests.get(
+                url,
+                params=params,
+                timeout=settings.METADATA_REQUEST_TIMEOUT)
             response.raise_for_status()
             data = response.json()
-            return data['SessionKey']
+
+            self.sessionKey = data['SessionKey']        
+            
+            return self.sessionKey
 
         except Exception as error:
             Logger.write('Error %s' % str(error))
-
+    
     def fetch_all(self):
         """Fetch Everything from WikiArt."""
+
+        self.getauthentication()                        #dv# call authentication prior to fetch/copy operations
+
         return (self.fetch_artists()
                     .fetch_all_paintings()
                     .copy_everything())
 
     def fetch_artists(self):
-        """Retrieve Artists from WikiArt."""
-        Logger.info('Fetching artists...', end=' ', flush=True)
+        """Retrieve Artists from WikiArt.
+
+        References:
+
+        - https://docs.google.com/document/d/1T926unU7mx9Blmx3c8UE0UQTnO3MrDbXTGYVerVQFDU/edit#heading=h.cqj7koncgwqn
+
+          Api methods with pagination:
+            UpdatedArtists, DeletedArtists, ArtistsByDictionary,
+            UpdatedDictionaries, DeletedDictionaries, DictionariesByGroup,
+            MostViewedPaintings, PaintingsByArtist, PaintingSearch
+          Response includes 2 additional fields - paginationToken and hasMore
+          Artists and paintings each have unique id's: where appropriate replace 'ContentId' with 'id'
+        """
+        Logger.write('Fetching list of artists: \n', end=' ', flush=True)
 
         path = os.path.join(settings.BASE_FOLDER, 'meta', 'artists.json')
         if os.path.exists(path) and not self.override:
@@ -108,21 +139,34 @@ class WikiArtFetcher:
             return self
 
         elapsed = time.time()
+        self.artists = []
+        params = {'SessionKey': self.sessionKey}
 
         try:
-            url = '/'.join((settings.BASE_URL, 'Artist/AlphabetJson'))
-            params = {'v' : 'new', 'inPublicDomain' : 'true'}
-            response = requests.get(url,
-                                    timeout=settings.METADATA_REQUEST_TIMEOUT,
-                                    params=params)
-            response.raise_for_status()
-            self.artists = response.json()
+            while True:
+                url = '/'.join((settings.BASE_URL, 'UpdatedArtists'))
+                response = requests.get(
+                    url, 
+                    params,
+                    timeout=settings.METADATA_REQUEST_TIMEOUT)
+
+                response.raise_for_status()
+                page = response.json()
+
+                artists = page['data']
+                for artist in artists:
+                    self.artists.append(artist)
+
+                if not page['hasMore']:
+                    break
+
+                params['paginationToken'] = unquote(page['paginationToken'])
 
             if self.commit:
                 with open(path, 'w', encoding='utf-8') as f:
                     json.dump(self.artists, f, indent=4, ensure_ascii=False)
 
-            Logger.write('Done (%.2f sec)' % (time.time() - elapsed))
+            Logger.write('%d Artists (%.2f sec)' % (len(self.artists), (time.time() - elapsed)))
 
         except Exception as error:
             Logger.write('Error %s' % str(error))
@@ -131,7 +175,7 @@ class WikiArtFetcher:
 
     def fetch_all_paintings(self):
         """Fetch Paintings Metadata for Every Artist"""
-        Logger.write('\nFetching paintings for every artist:')
+        Logger.write('\nFetching painting data of every artist:')
         if not self.artists:
             raise RuntimeError('No artists defined. Cannot continue.')
 
@@ -149,15 +193,23 @@ class WikiArtFetcher:
     def fetch_paintings(self, artist):
         """Retrieve and Save Paintings Info from WikiArt.
 
-        :param artist: dict, artist who should have their paintings retrieved.
+        References:
+        
+        - https://docs.google.com/document/d/1T926unU7mx9Blmx3c8UE0UQTnO3MrDbXTGYVerVQFDU/edit#heading=h.cqj7koncgwqn
+          Api methods with pagination:
+            UpdatedArtists, DeletedArtists, ArtistsByDictionary,
+            UpdatedDictionaries, DeletedDictionaries, DictionariesByGroup,
+            MostViewedPaintings, PaintingsByArtist, PaintingSearch
+          Response includes 2 additional fields - paginationToken and hasMore
+          Artists and paintings each have unique id's.
         """
-        Logger.write('|- %s\'s paintings'
-                     % artist['artistName'], end='', flush=True)
+
+        Logger.write('|- %s' % artist['artistName'], end='', flush=True)
         elapsed = time.time()
 
+        artist_id = artist['id']
+
         meta_folder = os.path.join(settings.BASE_FOLDER, 'meta')
-        url = '/'.join((settings.BASE_URL, 'Painting', 'PaintingsByArtist'))
-        params = {'artistUrl': artist['url'], 'json': 2}
         filename = os.path.join(meta_folder, artist['url'] + '.json')
 
         if os.path.exists(filename) and not self.override:
@@ -165,38 +217,51 @@ class WikiArtFetcher:
                 data = json.load(f)
             Logger.write(' (s)')
             return data
+        
+        params = {'SessionKey': self.sessionKey, 'id': artist_id}
 
         try:
-            response = requests.get(
-                url, params=params,
-                timeout=settings.METADATA_REQUEST_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
+            group_paintings = []
 
-            for painting in data:
-                # We have some info about the images,
-                # but we're also after their details.
-                url = '/'.join((settings.BASE_URL, 'Painting', 'ImageJson',
-                                str(painting['contentId'])))
-
-                self.padder.request_start()
+            while True:
+                url = '/'.join((settings.BASE_URL, 'PaintingsByArtist'))
                 response = requests.get(
-                    url, timeout=settings.METADATA_REQUEST_TIMEOUT)
-                self.padder.request_finished()
+                    url, 
+                    params=params,
+                    timeout=settings.METADATA_REQUEST_TIMEOUT)
+                
+                response.raise_for_status()
+                page = response.json()
+                paintings = page['data']
 
-                if response.ok:
-                    # Update paintings with its details.
-                    painting.update(response.json())
+                for painting in paintings:
+                    painting_id = painting['id']
+                    
+                    with self.request_padding:
+                        response = requests.get(
+                            '/'.join((settings.BASE_URL, 'Painting')), 
+                            params={'SessionKey': self.sessionKey, 'id': painting_id},
+                            timeout=settings.METADATA_REQUEST_TIMEOUT)
 
-                Logger.write('.', end='', flush=True)
+                    if response.ok:
+                        painting.update(response.json())
+
+                    group_paintings.append(painting)
+
+                    Logger.write('.', end='', flush=True)
+
+                if not page['hasMore']:
+                  break
+                
+                params['paginationToken'] = unquote(page['paginationToken'])
 
             if self.commit:
-                # Save the json file with images details.
                 with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=4, ensure_ascii=False)
+                    json.dump(group_paintings, f, indent=4, ensure_ascii=False)
 
-            Logger.write(' Done (%.2f sec)' % (time.time() - elapsed))
-            return data
+            Logger.write('%d Paintings (%.2f sec)' % (len(group_paintings), (time.time() - elapsed)))
+            
+            return group_paintings
 
         except (IOError, urllib.error.HTTPError) as e:
             Logger.write(' Failed (%s)' % str(e))
@@ -204,16 +269,16 @@ class WikiArtFetcher:
 
     def copy_everything(self):
         """Download A Copy of Every Single Painting."""
-        Logger.write('\nCopying paintings:')
+        Logger.write('\nFetching painting images:')
         if not self.painting_groups:
             raise RuntimeError('Painting groups not found. Cannot continue.')
 
         show_progress_at = max(1, int(.1 * len(self.painting_groups)))
 
-        # Retrieve copies of every artist's painting.
         for i, group in enumerate(self.painting_groups):
             for painting in group:
                 self.download_hard_copy(painting)
+                Logger.write('.', end='', flush=True)
 
             if i % show_progress_at == 0:
                 Logger.info('%i%% done' % (100 * (i + 1) // len(self.painting_groups)))
@@ -222,17 +287,13 @@ class WikiArtFetcher:
 
     def download_hard_copy(self, painting):
         """Download A Copy of A Painting."""
-        Logger.write('|- %s' % painting.get('url', painting.get('contentId')),
-                     end=' ', flush=True)
+        Logger.write('|- %s' % painting.get('url', painting.get('id')), end=' ', flush=True)
         elapsed = time.time()
         url = painting['image']
-        # Remove label "!Large.jpg".
-        url = ''.join(url.split('!')[:-1])
+        url = re.sub(r'(?i)!large.jpg', '', url)
         filename = os.path.join(settings.BASE_FOLDER,
                                 'images',
-                                painting['artistUrl'],
-                                str(painting['completitionYear']) if painting['completitionYear'] else 'unknown-year',
-                                str(painting['contentId']) +
+                                painting['id'] +
                                 settings.SAVE_IMAGES_IN_FORMAT)
 
         if os.path.exists(filename) and not self.override:
@@ -242,11 +303,12 @@ class WikiArtFetcher:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         try:
-            # Save image.
-            self.padder.request_start()
-            response = requests.get(url, stream=True,
-                                    timeout=settings.PAINTINGS_REQUEST_TIMEOUT)
-            self.padder.request_finished()
+            with self.request_padding:
+                response = requests.get(
+                    url, 
+                    params={'SessionKey': self.sessionKey},
+                    stream=True,
+                    timeout=settings.PAINTINGS_REQUEST_TIMEOUT)
 
             response.raise_for_status()
 

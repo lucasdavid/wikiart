@@ -1,6 +1,5 @@
 """WikiArt Retriever Base Settings.
 
-Author: Lucas David -- <ld492@drexel.edu>
 License: MIT License (c) 2016
 
 """
@@ -8,7 +7,8 @@ License: MIT License (c) 2016
 # Base Settings
 
 # WikiArt base url.
-BASE_URL = 'https://www.wikiart.org/en/App'
+# BASE_URL = 'https://www.wikiart.org/en/App'  # API 1
+BASE_URL = 'https://www.wikiart.org/en/api/2'  # API 2
 
 # Base folder in which the files will be saved.
 BASE_FOLDER = './wikiart-saved/'

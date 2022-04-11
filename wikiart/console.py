@@ -1,8 +1,6 @@
-"""WikiArt.
+"""WikiArt Artwork and Metadata Collector.
 
-Author: Lucas David -- <ld492@drexel.edu>
 License: MIT License (c) 2016
-
 """
 
 import argparse

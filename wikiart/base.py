@@ -1,6 +1,5 @@
 """WikiArt Base.
 
-Author: Lucas David -- <ld492@drexel.edu>
 License: MIT License (c) 2016
 
 """
@@ -45,6 +44,13 @@ class RequestPadder:
             self.n_requests_made = 0
             self.time_spent_requesting = 0
             self.local_elapsed = 0
+    
+    def __enter__(self):
+        self.request_start()
+        return self
+    
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.request_finished()
 
 
 class Logger(metaclass=abc.ABCMeta):
