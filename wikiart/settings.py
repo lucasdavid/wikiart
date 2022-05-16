@@ -22,13 +22,13 @@ SAVE_IMAGES_IN_FORMAT = '.jpg'
 # seconds. The following parameters are used to control the frequency of
 # these same requests.
 # Number of requests made before checking if the process should slow down.
-REQUEST_STRIDE = 10
+REQUEST_STRIDE = 10  # 8  # for slow connections
 # Minimum delta time between two consecutive request strides.
 REQUEST_PADDING_IN_SECS = 5
 
 # Maximum time (in secs) before canceling a download.
-METADATA_REQUEST_TIMEOUT = 2 * 60
-PAINTINGS_REQUEST_TIMEOUT = 5 * 60
+METADATA_REQUEST_TIMEOUT = 2 * 60  # 20 * 60          #dv# for slow wifi connection
+PAINTINGS_REQUEST_TIMEOUT = 5 * 60  # 20 * 60         #dv# for slow wifi connection
 
 # Data Set Conversion Settings
 
