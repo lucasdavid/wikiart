@@ -154,19 +154,18 @@ class WikiArtFetcher:
           break
 
         params['paginationToken'] = unquote(page['paginationToken'])
-
-      print(f'\nTotal: {len(self.artists)}')
-
-      if self.commit:
-        print(f'  caching painters list in `{path}`.')
-
-        with open(path, 'w', encoding='utf-8') as f:
-          json.dump(self.artists, f, indent=4, ensure_ascii=False)
-
-      Logger.write('%d Artists (%.2f sec)' % (len(self.artists), (time.time() - elapsed)))
-
     except Exception as error:
       Logger.write('Error %s' % str(error))
+    
+    print(f'\nTotal: {len(self.artists)}')
+
+    if self.commit:
+      print(f'  caching painters list in `{path}`.')
+
+      with open(path, 'w', encoding='utf-8') as f:
+        json.dump(self.artists, f, indent=4, ensure_ascii=False)
+
+    Logger.write('%d Artists (%.2f sec)' % (len(self.artists), (time.time() - elapsed)))
 
     return self
 
