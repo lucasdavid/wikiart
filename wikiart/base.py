@@ -53,7 +53,7 @@ class RequestPadder:
         self.request_finished()
 
 
-class Logger(metaclass=abc.ABCMeta):
+class log(metaclass=abc.ABCMeta):
     """Logs Events During Fetching and Conversion."""
     active = False
     keep_messages = False

@@ -57,8 +57,8 @@ class Console:
                 settings.BASE_FOLDER = args.datadir
 
             # Initiate logging, if requested.
-            base.Logger.active = args.verbose
-            base.Logger.keep_messages = False
+            base.log.active = args.verbose
+            base.log.keep_messages = False
 
             if not hasattr(args, 'func'):
                 return self.main(args)

@@ -7,7 +7,7 @@ import json
 import os
 
 from . import settings
-from .base import Logger
+from .base import log
 
 
 class WikiArtMetadataConverter:
@@ -27,13 +27,13 @@ class WikiArtMetadataConverter:
         base_folder = settings.BASE_FOLDER
         os.makedirs(base_folder, exist_ok=True)
 
-        Logger.info('Loading artists...', end=' ', flush=True)
-        with open(os.path.join(base_folder, 'meta', 'artists.json'),
+        log.info('Loading artists...', end=' ', flush=True)
+        with open(os.path.join(base_folder, 'meta', 'painters.json'),
                   encoding='utf-8') as f:
             self.artists = json.load(f)
-        Logger.write('done.')
+        log.write('done.')
 
-        Logger.info('Loading paintings...', flush=True)
+        log.info('Loading paintings...', flush=True)
         self.painting_groups = []
 
         for artist in self.artists:
@@ -44,17 +44,17 @@ class WikiArtMetadataConverter:
                     self.painting_groups.append(json.load(f))
 
             except IOError as error:
-                Logger.warning(str(error))
+                log.warning(str(error))
 
-        Logger.write('done.')
+        log.write('done.')
         return self
 
     def generate_images_data_set(self):
-        Logger.info('generating images data set', end=' ', flush=True)
+        log.info('generating images data set', end=' ', flush=True)
 
         path = os.path.join(settings.BASE_FOLDER, 'wikiart.data')
         if os.path.exists(path) and not self.override:
-            Logger.write('(s)')
+            log.write('(s)')
             return self
 
         paintings = sum(self.painting_groups, [])
@@ -63,22 +63,22 @@ class WikiArtMetadataConverter:
             f.write(settings.PAINTINGS_HEADER)
             f.writelines(self.paintings_as_lines(paintings))
 
-        Logger.write('(d)')
+        log.write('(d)')
         return self
 
     def generate_labels(self):
-        Logger.write('generating labels', end=' ', flush=True)
+        log.write('generating labels', end=' ', flush=True)
 
         path = os.path.join(settings.BASE_FOLDER, 'labels.data')
         if os.path.exists(path) and not self.override:
-            Logger.write('(s)')
+            log.write('(s)')
             return self
 
         with open(path, 'w', encoding='utf-8') as file:
             file.write(settings.LABELS_HEADER)
             file.writelines(self.artists_as_lines(self.artists))
 
-        Logger.write('(d)')
+        log.write('(d)')
         return self
 
     @classmethod
