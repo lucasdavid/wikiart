@@ -66,7 +66,7 @@ class WikiArtFetcher:
 
     if only in ('paintings', 'all'):
       for artist in self.painters:
-        filename = os.path.join(meta_dir, artist['url'] + '.json')
+        filename = os.path.join(meta_dir, 'paintings', artist['url'] + '.json')
         if not os.path.exists(filename):
           log.warning('%s\'s paintings file is missing.' % artist['url'])
 
