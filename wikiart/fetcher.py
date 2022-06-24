@@ -160,7 +160,7 @@ class WikiArtFetcher:
         page = response.json()
       except HTTPError as error:
         error = error.response.status_code
-        log.write('Error Response Status Code %s' % str(error))
+        log.write(f'Error Response Status Code {str(error)}')
         interrupted = True
         break
 
