@@ -15,6 +15,7 @@ from datetime import datetime
 from urllib.parse import unquote
 
 import requests
+from requests.exceptions import HTTPError
 
 from . import base, settings
 from .base import log
@@ -157,7 +158,8 @@ class WikiArtFetcher:
         response = requests.get(url, params, timeout=settings.METADATA_REQUEST_TIMEOUT)
         response.raise_for_status()
         page = response.json()
-      except Exception as error:
+      except HTTPError as error:
+        error = error.response.status_code
         log.write('Error %s' % str(error))
         interrupted = True
         break
