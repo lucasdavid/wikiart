@@ -65,18 +65,18 @@ class WikiArtFetcher:
     imgs_dir = os.path.join(base_dir, 'images')
 
     if only in ('paintings', 'all'):
-      for artist in self.painters:
-        filename = os.path.join(meta_dir, 'paintings', artist['url'] + '.json')
-        if not os.path.exists(filename):
-          log.warning('%s\'s paintings file is missing.' % artist['url'])
+      for painter in self.painters:
+        paintings_path = os.path.join(meta_dir, 'paintings', painter['url'] + '.json')
+        if not os.path.exists(paintings_path):
+          log.warning('%s\'s paintings file is missing.' % painter['url'])
 
       # Check for paintings copies.
       for group in self.painting_groups:
         for painting in group:
-          filename = painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
-          filename = os.path.join(imgs_dir, filename)
+          painting_path = painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
+          painting_path = os.path.join(imgs_dir, painting_path)
 
-          if not os.path.exists(filename):
+          if not os.path.exists(painting_path):
             log.warning('painting %s is missing.' % painting['id'])
 
     return self
@@ -115,7 +115,9 @@ class WikiArtFetcher:
 
   def fetch_all(self):
     """Fetch Everything from WikiArt."""
-    return (self.fetch_artists().fetch_all_paintings().copy_everything())
+    return (self.fetch_artists()
+                .fetch_all_paintings()
+                .copy_everything())
 
   def fetch_artists(self):
     log.write('Fetching list of artists:', flush=True)
