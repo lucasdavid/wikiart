@@ -15,7 +15,7 @@ setup(
                 'http://wikiart.org/.',
     entry_points={
         'console_scripts': [
-            'wikiart = wikiart.console:main',
+            'wikiart = wikiart:main',
         ]
     },
     long_description=open('README.md').read(),

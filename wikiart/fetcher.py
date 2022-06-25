@@ -3,7 +3,7 @@
 License: MIT License (c) 2016
 
 """
-import json
+
 import os
 import re
 import shutil
@@ -11,24 +11,16 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime
-# https://stackoverflow.com/questions/65873428/python-requests-module-get-method-handling-pagination-token-in-params-containin
 from urllib.parse import unquote
 
 import requests
 from requests.exceptions import HTTPError
 
-from . import base, settings
-from .base import log
-
-
-def load_json(file, encoding='utf-8'):
-  with open(file, encoding=encoding) as f:
-    return json.load(f)
-
-
-def save_json(data, file, encoding='utf-8'):
-  with open(file, 'w', encoding=encoding) as f:
-    json.dump(data, f, indent=4, ensure_ascii=False)
+from . import settings
+from .utils import (
+  RequestPadder, Paginator, get_painters_dir, load_json, load_painters_in_disk,
+  log, save_json, save_painters_in_disk
+)
 
 
 class WikiArtFetcher:
@@ -39,17 +31,21 @@ class WikiArtFetcher:
 
   def __init__(self, override=False, padder=None):
     self.override = override
-    self.request_padding = padder or base.RequestPadder()
+    self.request_padding = padder or RequestPadder()
 
-    self.session_key = None
     self.painters = None
     self.painting_groups = None
+    self.session_key = None
 
   def prepare(self):
     """Prepare for data extraction."""
     os.makedirs(settings.BASE_FOLDER, exist_ok=True)
-    os.makedirs(os.path.join(settings.BASE_FOLDER, 'meta', 'painters'), exist_ok=True)
-    os.makedirs(os.path.join(settings.BASE_FOLDER, 'meta', 'paintings'), exist_ok=True)
+    os.makedirs(
+      os.path.join(settings.BASE_FOLDER, 'meta', 'painters'), exist_ok=True
+    )
+    os.makedirs(
+      os.path.join(settings.BASE_FOLDER, 'meta', 'paintings'), exist_ok=True
+    )
     os.makedirs(os.path.join(settings.BASE_FOLDER, 'images'), exist_ok=True)
 
     self.authenticate()
@@ -106,7 +102,9 @@ class WikiArtFetcher:
 
     # url = 'https://www.wikiart.org/en/Api/2/login'
     url = '/'.join((settings.BASE_URL, 'login'))
-    response = requests.get(url, params=params, timeout=settings.METADATA_REQUEST_TIMEOUT)
+    response = requests.get(
+      url, params=params, timeout=settings.METADATA_REQUEST_TIMEOUT
+    )
     response.raise_for_status()
     data = response.json()
 
@@ -122,70 +120,45 @@ class WikiArtFetcher:
   def fetch_artists(self):
     log.write('Fetching list of artists:', flush=True)
 
-    base_dir = settings.BASE_FOLDER
-    painters_dir = os.path.join(base_dir, 'meta', 'painters')
-    context_path = os.path.join(base_dir, 'meta', '_context.json')
-
     url = '/'.join((settings.BASE_URL, 'UpdatedArtists'))
-    params = {}
-    elapsed = time.time()
-    interrupted = False
+    timeout = settings.METADATA_REQUEST_TIMEOUT
+    painters_dir = get_painters_dir()
     last_request_at = None
 
-    context = load_json(context_path) if os.path.exists(context_path) else {}
-    request_id = context.get('requestId', 0)
+    paginator = Paginator().load_context_from_disk()
+    params = {}
     if self.session_key:
       params['SessionKey'] = self.session_key
-    if context.get('hasMore'):
-      params['paginationToken'] = unquote(context['paginationToken'])
-    if context.get('fromDate'):
-      params['fromDate'] = context['fromDate']
 
-    while not interrupted:
+    elapsed = time.time()
+    while paginator.running:
       try:
         last_request_at = int(datetime.utcnow().timestamp() * 1000)
-        response = requests.get(url, params, timeout=settings.METADATA_REQUEST_TIMEOUT)
+        params.update(paginator.params)
+        response = requests.get(url, params, timeout=timeout)
         response.raise_for_status()
         page = response.json()
       except HTTPError as error:
         error = error.response.status_code
         log.write(f'Error Response Status Code {str(error)}')
-        interrupted = True
+        paginator.interrupt()
         break
 
       painters = page['data']
-      for p in painters:
-        save_json(p, os.path.join(painters_dir, f'{p["url"]}.json'))
-
-      context.update(
-        requestId=request_id,
-        hasMore=page.get('hasMore'),
-        paginationToken=page.get('paginationToken'),
-      )
-      save_json(context, context_path)
-
-      request_id += 1
+      save_painters_in_disk(painters, painters_dir)
       log.write(f'{len(painters)}...', end='', flush=True)
 
-      if not page.get('hasMore'):
-        break
+      paginator.context.update(page)
 
-      params['paginationToken'] = unquote(page['paginationToken'])
-
-    # Load all available painters.
-    self.painters = [
-      load_json(os.path.join(painters_dir, p))
-      for p in os.listdir(painters_dir)
-    ]
-
+    self.painters = load_painters_in_disk(painters_dir)
     if len(self.painters):
-      log.info(f'{len(self.painters)} locally cached painters were loaded', flush=True)
+      log.write(f'{len(self.painters)} locally cached painters were loaded')
 
-    # Save request context.
-    if not interrupted:
-      context['fromDate'] = last_request_at
-    save_json(context, context_path)
-    log.write('%d painters (%.2f sec)' % (len(self.painters), (time.time() - elapsed)))
+    paginator.save_context_in_disk(last_request_at)
+    log.write(
+      f'{len(self.painters)} painters ({time.time()-elapsed:.2f} sec)',
+      flush=True
+    )
 
     return self
 
@@ -202,17 +175,18 @@ class WikiArtFetcher:
     for i, painter in enumerate(self.painters):
       self.painting_groups.append(self.fetch_paintings(painter))
 
-      if i % show_progress_at == 0:
-        log.info('%i%% done' % (100 * (i + 1) // len(self.painters)))
+      if (i + 1) % show_progress_at == 0:
+        log.write(f'> {(i + 1) / len(self.painters):.0%}')
 
     return self
 
   def fetch_paintings(self, artist):
-    log.write('|- %s' % artist['artistName'], end='', flush=True)
+    log.write('  %s' % artist['artistName'], end='', flush=True)
     elapsed = time.time()
 
     paintings_path = os.path.join(
-      settings.BASE_FOLDER, 'meta', 'paintings', artist['url'] + '.json')
+      settings.BASE_FOLDER, 'meta', 'paintings', artist['url'] + '.json'
+    )
 
     if os.path.exists(paintings_path) and not self.override:
       log.write(' (s)')
@@ -259,7 +233,9 @@ class WikiArtFetcher:
         params['paginationToken'] = unquote(page['paginationToken'])
 
       save_json(group_paintings, paintings_path)
-      log.write(f'{len(group_paintings)} paintings ({time.time() - elapsed:.2f} sec)')
+      log.write(
+        f'{len(group_paintings)} paintings ({time.time() - elapsed:.2f} sec)'
+      )
 
       return group_paintings
 
@@ -287,16 +263,20 @@ class WikiArtFetcher:
 
   def download_hard_copy(self, painting):
     """Download A Copy of A Painting."""
-    log.write('   %s' % painting.get('url', painting.get('id')), end=' ', flush=True)
+    log.write(
+      '   %s' % painting.get('url', painting.get('id')), end=' ', flush=True
+    )
     elapsed = time.time()
 
     url = painting['image']
     url = re.sub(r'(?i)!large.jpg', '', url)
     filename = os.path.join(
-      settings.BASE_FOLDER, 'images', painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
+      settings.BASE_FOLDER, 'images',
+      painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
     )
     filename = os.path.join(
-      settings.BASE_FOLDER, 'images', painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
+      settings.BASE_FOLDER, 'images',
+      painting['id'] + settings.SAVE_IMAGES_IN_FORMAT
     )
 
     if os.path.exists(filename) and not self.override:
