@@ -10,6 +10,7 @@ import shutil
 import time
 import urllib.error
 import urllib.request
+import re
 
 import requests
 
@@ -129,6 +130,24 @@ class WikiArtFetcher:
 
         return self
 
+    def fetch_artist(self, artist_name):
+        """Fetch Paintings Metadata for One Artist"""
+        Logger.write('\nFetching paintings for artist: {}'.format(artist_name))
+        if not self.artists:
+            raise RuntimeError('No artists defined. Cannot continue.')
+
+        self.painting_groups = []
+        show_progress_at = max(1, int(.1 * len(self.artists)))
+
+        for artist in self.artists:
+            if re.search(artist_name.lower(), artist['artistName'].lower()):
+                self.painting_groups.append(self.fetch_paintings(artist))
+
+        if not self.painting_groups:
+            raise ValueError('Artist name "{}" not found. Cannot continue'.format(artist_name))
+
+        return self
+
     def fetch_all_paintings(self):
         """Fetch Paintings Metadata for Every Artist"""
         Logger.write('\nFetching paintings for every artist:')
@@ -206,7 +225,7 @@ class WikiArtFetcher:
         """Download A Copy of Every Single Painting."""
         Logger.write('\nCopying paintings:')
         if not self.painting_groups:
-            raise RuntimeError('Painting groups not found. Cannot continue.')
+            raise ValueError('Painting groups not found. Cannot continue.')
 
         show_progress_at = max(1, int(.1 * len(self.painting_groups)))
 
