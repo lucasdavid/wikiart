@@ -19,6 +19,9 @@ For more information on the options available, run `python wikiart.py --help`.
 ### Download Paintings from Specific Artists
 If you want the paintings of specific painters (instead of the entire wikiart), you could:
 
-1. Run the command `python3 wikiart.py --datadir ./wikiart-saved/ fetch --only artists`. This will download `./wikiart-saved/meta/artists.json`, a small file containing a list of all painters in wikiart.
-2. Open `./wikiart-saved/meta/artists.json` and remove the entries of the artists that you DO NOT wish to download.
-3. Run `python3 wikiart.py --datadir ./wikiart-saved/ fetch`. This will download the paintings from the artists that weren't removed from the list.
+```
+python3 wikiart.py --datadir ./wikiart-saved/ fetch --only <artist name>
+```
+
+Artist name can be any part of the artist name. You can also download multiple artists' paintings
+with a single query (Eg. William)

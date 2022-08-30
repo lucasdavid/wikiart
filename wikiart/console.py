@@ -9,6 +9,7 @@ import argparse
 import time
 
 from . import base, converter, fetcher, settings
+from .base import Logger
 
 
 class Console:
@@ -33,7 +34,6 @@ class Console:
             description='specify which operation to perform.')
         p_fetch = sp.add_parser('fetch', help='fetch paintings from WikiArt')
         p_fetch.add_argument('--only', type=str, default='all',
-                             choices=('artists', 'paintings', 'all'),
                              help='fetch only artists list, paintings '
                                   'metadata or artists, paintings annotations '
                                   'and copies')
@@ -84,8 +84,13 @@ class Console:
         else:
             f.fetch_artists()
 
-            if args.only == 'paintings':
-                f.fetch_all_paintings()
+            try:
+                if args.only == 'paintings':
+                    f.fetch_all_paintings()
+                elif args.only != 'artists':
+                    f.fetch_artist(args.only).copy_everything()
+            except ValueError as err:
+                Logger.error('Fetch failed. {}'.format(str(err)))
 
         if args.check: f.check(only=args.only)
 
