@@ -132,7 +132,7 @@ class WikiArtFetcher:
 
     def fetch_artist(self, artist_name):
         """Fetch Paintings Metadata for One Artist"""
-        Logger.write('\nFetching paintings for artist: {}'.format(artist_name))
+        Logger.write('\nFetching paintings of artist: {} (Metadata retrieval is slow and can take minutes. Please be patient)'.format(artist_name))
         if not self.artists:
             raise RuntimeError('No artists defined. Cannot continue.')
 
